@@ -22,16 +22,18 @@ def decode_input(filename):
     print ('channels: %d samples: %d' % data.shape)
 
     total_samples = data.shape[1]
-    samples = np.array([data[0, :], data[0, :]]).flatten()
-    return total_samples, np.array([samples], dtype=np.float32)
+    # samples = np.array([data[0, :], data[1, :]]).flatten()
+    samples = np.array(data).flatten()
+    return total_samples, data, np.array([samples], dtype=np.float32)
 
 
-def extract(filename):
+def extract(filename, channel):
     # Model
     model = Model()
     global_step = tf.Variable(0, dtype=tf.int32, trainable=False, name='global_step')
 
-    total_samples, samples = decode_input(filename)
+    total_samples, origin_samples, samples = decode_input(filename)
+    channels = origin_samples.shape[0]
     with tf.Session(config=EvalConfig.session_conf) as sess:
 
         # Initialized, Load state
@@ -69,24 +71,41 @@ def extract(filename):
             pred_src2_wav = to_wav(pred_src2_mag, mixed_phase)
 
         base_file_name = os.path.splitext(filename)[0]
+
         def stack(data):
-            size = data.shape[0] // 2
-            left_data = data[0:size]
-            right_data = data[size:size*2]
-            return np.dstack((left_data, right_data))[0]
+            size = data.shape[0] // channels
+            elements = []
+            for i in range(channels):
+                elements.append(data[size * i:size * (i + 1)])
+            return np.dstack(elements)[0]
 
-        music_wav = stack(pred_src1_wav[0])
-        voice_wav = stack(pred_src2_wav[0])
+        music_data = pred_src1_wav[0]
+        voice_data = pred_src2_wav[0]
+        if channel >= 0:
+            def filter_samples(data):
+                data = data.reshape((origin_samples.shape[0], data.shape[0] / origin_samples.shape[0]))
+                for i in range(origin_samples.shape[0]):
+                    if i != channel:
+                        data[i, :] = origin_samples[i, 0:data.shape[1]]
+                return data.flatten()
 
-        write_wav(music_wav, base_file_name + '-music')
-        write_wav(voice_wav, base_file_name + '-voice')
+            music_data = filter_samples(music_data)
+            voice_data = filter_samples(voice_data)
+
+        music_wav = stack(music_data)
+        voice_wav = stack(voice_data)
+
+        write_wav(music_wav, base_file_name + '-h%d-music' % model.hidden_size)
+        write_wav(voice_wav, base_file_name + '-h%d-voice' % model.hidden_size)
 
 
 if __name__ == '__main__':
     from optparse import OptionParser
 
     parser = OptionParser(usage='%prog music.wav')
+    parser.add_option('-c', dest='channel', default=-1, type=int,
+                      help="extract voice from specified channel, -1 to extract all channels")
     options, args = parser.parse_args()
 
     for arg in args:
-        extract(arg)
+        extract(arg, options.channel)
