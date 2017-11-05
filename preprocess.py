@@ -13,7 +13,7 @@ import soundfile as sf
 
 # Batch considered
 def get_random_wav(filenames, sec, sr=ModelConfig.SR):
-    src1_src2 = map(lambda f: _sample_range(_pad_wav(librosa.load(f, sr=sr, mono=False)[0], sr, sec), sr, sec), filenames)
+    src1_src2 = map(lambda f: _sample_range(_pad_wav(librosa.load(f, sr=sr, mono=False)[0], sr, sec, pad_mode='wrap'), sr, sec), filenames)
     mixed = np.array(map(lambda f: librosa.to_mono(f), src1_src2))
     src1_src2 = np.array(src1_src2)
     src1, src2 = src1_src2[:, 0], src1_src2[:, 1]
@@ -88,7 +88,7 @@ def griffin_lim(mag, len_frame, len_hop, num_iters, phase_angle=None, length=Non
     return wav
 
 
-def _pad_wav(wav, sr, duration):
+def _pad_wav(wav, sr, duration, pad_mode='constant'):
     assert(wav.ndim <= 2)
 
     n_samples = sr * duration
@@ -97,7 +97,10 @@ def _pad_wav(wav, sr, duration):
         pad_width = (0, pad_len)
     else:
         pad_width = ((0, 0), (0, pad_len))
-    wav = np.pad(wav, pad_width=pad_width, mode='constant', constant_values=0)
+    if pad_mode == 'constant':
+        wav = np.pad(wav, pad_width=pad_width, mode=pad_mode, constant_values=0)
+    else:
+        wav = np.pad(wav, pad_width=pad_width, mode=pad_mode)
 
     return wav
 
