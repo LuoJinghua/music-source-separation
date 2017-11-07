@@ -78,6 +78,9 @@ def eval():
             tf.summary.scalar('GNSDR_vocal', gnsdr[1])
             tf.summary.scalar('GSIR_vocal', gsir[1])
             tf.summary.scalar('GSAR_vocal', gsar[1])
+            print 'GNSDR: ', gnsdr
+            print 'GSIR: ', gsir
+            print 'GSAR: ', gsar
 
         if EvalConfig.WRITE_RESULT:
             # Write the result
@@ -97,7 +100,7 @@ def bss_eval_global(mixed_wav, src1_wav, src2_wav, pred_src1_wav, pred_src2_wav)
     src1_wav = src1_wav[:, :len_cropped]
     src2_wav = src2_wav[:, :len_cropped]
     mixed_wav = mixed_wav[:, :len_cropped]
-    gnsdr = gsir = gsar = np.zeros(2)
+    gnsdr, gsir, gsar = np.zeros(2), np.zeros(2), np.zeros(2)
     total_len = 0
     for i in range(EvalConfig.NUM_EVAL):
         sdr, sir, sar, _ = bss_eval_sources(np.array([src1_wav[i], src2_wav[i]]),
