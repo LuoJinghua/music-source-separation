@@ -15,7 +15,7 @@ import numpy as np
 
 
 class Model:
-    def __init__(self, n_rnn_layer=3, hidden_size=256):
+    def __init__(self, n_rnn_layer=3, hidden_size=512):
 
         # Input, Output
         self.x_mixed = tf.placeholder(tf.float32, shape=(None, None, ModelConfig.L_FRAME // 2 + 1), name='x_mixed')
