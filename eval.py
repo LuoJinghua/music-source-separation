@@ -24,7 +24,7 @@ def eval(n):
     for i in range(n):
         with tf.Graph().as_default():
             # Model
-            model = Model()
+            model = Model(ModelConfig.HIDDEN_LAYERS, ModelConfig.HIDDEN_UNITS)
             global_step = tf.Variable(0, dtype=tf.int32, trainable=False, name='global_step')
 
             with tf.Session(config=EvalConfig.session_conf) as sess:
@@ -32,6 +32,9 @@ def eval(n):
                 # Initialized, Load state
                 sess.run(tf.global_variables_initializer())
                 model.load_state(sess, EvalConfig.CKPT_PATH)
+
+                print('num trainable parameters: %s' % (
+                    np.sum([np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()])))
 
                 writer = tf.summary.FileWriter(EvalConfig.GRAPH_PATH, sess.graph)
 
@@ -157,6 +160,20 @@ if __name__ == '__main__':
     parser = OptionParser(usage='%prog -n 10')
     parser.add_option('-n', dest='n', default=1, type=int,
                       help="run the evaluation N times")
+    parser.add_option('-p', dest='check_point', default=EvalConfig.CKPT_PATH,
+                      help="the path to checkpoint")
+    parser.add_option('--hidden-units', dest='hidden_units', default=ModelConfig.HIDDEN_UNITS, type=int,
+                      help='the hidden units per GRU cell')
+    parser.add_option('--hidden-layers', dest='hidden_layers', default=ModelConfig.HIDDEN_LAYERS, type=int,
+                      help='the hidden layers of network')
+    parser.add_option('--case-name', dest='case_name', default=EvalConfig.CASE,
+                      help='the name of this setup')
+
     options, args = parser.parse_args()
+    if options.check_point:
+        EvalConfig.CKPT_PATH = options.check_point
+    ModelConfig.HIDDEN_UNITS = options.hidden_units
+    ModelConfig.HIDDEN_LAYERS = options.hidden_layers
+    EvalConfig.CASE = options.case_name
     setup_path()
     eval(options.n)

@@ -12,7 +12,7 @@ import time
 import numpy as np
 import tensorflow as tf
 
-from config import EvalConfig, TrainConfig
+from config import EvalConfig, TrainConfig, ModelConfig
 from data import Data
 from model import Model
 from preprocess import to_spectrogram, get_magnitude, get_phase, soft_time_freq_mask, to_wav, to_wav_mag_only
@@ -66,12 +66,13 @@ def eval(model, eval_data, sess):
 # TODO multi-gpu
 def train():
     # Model
-    model = Model()
+    model = Model(ModelConfig.HIDDEN_LAYERS, ModelConfig.HIDDEN_UNITS)
 
     # Loss, Optimizer
     global_step = tf.Variable(0, dtype=tf.int32, trainable=False, name='global_step')
     loss_fn = model.loss()
     optimizer = tf.train.AdamOptimizer(learning_rate=TrainConfig.LR).minimize(loss_fn, global_step=global_step)
+    #optimizer = tf.train.GradientDescentOptimizer(learning_rate=TrainConfig.LR).minimize(loss_fn, global_step=global_step)
 
     model.gnsdr_music = tf.placeholder(dtype=tf.float32, shape=(), name='gnsdr_music')
     model.gsir_music = tf.placeholder(dtype=tf.float32, shape=(), name='gsir_music')
@@ -89,6 +90,9 @@ def train():
         # Initialized, Load state
         sess.run(tf.global_variables_initializer())
         model.load_state(sess, TrainConfig.CKPT_PATH)
+
+        print('num trainable parameters: %s' % (
+            np.sum([np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()])))
 
         writer = tf.summary.FileWriter(TrainConfig.GRAPH_PATH, sess.graph)
 
@@ -176,5 +180,19 @@ def setup_path():
 
 
 if __name__ == '__main__':
+    from optparse import OptionParser
+
+    usage = """%prog"""
+    parser = OptionParser(usage=usage)
+    parser.add_option('--hidden-units', dest='hidden_units', default=ModelConfig.HIDDEN_UNITS, type=int,
+                      help='the hidden units per GRU cell')
+    parser.add_option('--hidden-layers', dest='hidden_layers', default=ModelConfig.HIDDEN_LAYERS, type=int,
+                      help='the hidden layers of network')
+    parser.add_option('--case-name', dest='case_name', default=TrainConfig.CASE,
+                      help='the name of this setup')
+    (options, args) = parser.parse_args()
+    ModelConfig.HIDDEN_UNITS = options.hidden_units
+    ModelConfig.HIDDEN_LAYERS = options.hidden_layers
+    TrainConfig.CASE = options.case_name
     setup_path()
     train()

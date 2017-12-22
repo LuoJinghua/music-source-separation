@@ -45,6 +45,10 @@ class Model:
 
         return y_tilde_src1, y_tilde_src2
 
+    def soft_time_freq_mask(self, target_src, remaining_src):
+        mask = tf.abs(target_src) / (tf.abs(target_src) + tf.abs(remaining_src) + np.finfo(float).eps)
+        return mask
+
     def loss(self):
         pred_y_src1, pred_y_src2 = self()
         return tf.reduce_mean(tf.square(self.y_src1 - pred_y_src1) + tf.square(self.y_src2 - pred_y_src2), name='loss')

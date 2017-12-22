@@ -21,16 +21,17 @@ def decode_input(filename):
 
     print ('channels: %d samples: %d' % data.shape)
 
+    n_channels = data.shape[0]
     total_samples = data.shape[1]
-    # samples = np.array([data[0, :], data[1, :]]).flatten()
-    samples = np.array(data).flatten()
-    return total_samples, data, np.array([samples], dtype=np.float32)
-
+    result = []
+    for ch in range(n_channels):
+        result.append(np.array([data[ch, :]]).flatten())
+    return total_samples, data, np.array(result, dtype=np.float32)
 
 def extract(filename, channel):
     with tf.Graph().as_default():
         # Model
-        model = Model()
+        model = Model(ModelConfig.HIDDEN_LAYERS, ModelConfig.HIDDEN_UNITS)
         global_step = tf.Variable(0, dtype=tf.int32, trainable=False, name='global_step')
 
         total_samples, origin_samples, samples = decode_input(filename)
@@ -80,21 +81,21 @@ def extract(filename, channel):
                     elements.append(data[size * i:size * (i + 1)])
                 return np.dstack(elements)[0]
 
-            music_data = pred_src1_wav[0]
-            voice_data = pred_src2_wav[0]
+            music_data = pred_src1_wav
+            voice_data = pred_src2_wav
+
             if channel >= 0:
                 def filter_samples(data):
-                    data = data.reshape((origin_samples.shape[0], data.shape[0] / origin_samples.shape[0]))
                     for i in range(origin_samples.shape[0]):
                         if i != channel:
                             data[i, :] = origin_samples[i, 0:data.shape[1]]
-                    return data.flatten()
+                    return data
 
                 music_data = filter_samples(music_data)
                 voice_data = filter_samples(voice_data)
 
-            music_wav = stack(music_data)
-            voice_wav = stack(voice_data)
+            music_wav = np.dstack(music_data)[0]
+            voice_wav = np.dstack(voice_data)[0]
 
             write_wav(music_wav, base_file_name + '-h%d-music' % model.hidden_size)
             write_wav(voice_wav, base_file_name + '-h%d-voice' % model.hidden_size)
@@ -106,7 +107,19 @@ if __name__ == '__main__':
     parser = OptionParser(usage='%prog music.wav')
     parser.add_option('-c', dest='channel', default=-1, type=int,
                       help="extract voice from specified channel, -1 to extract all channels")
+    parser.add_option('-p', dest='check_point', default=EvalConfig.CKPT_PATH,
+                      help="the path to checkpoint")
+    parser.add_option('--hidden-units', dest='hidden_units', default=ModelConfig.HIDDEN_UNITS, type=int,
+                      help='the hidden units per GRU cell')
+    parser.add_option('--hidden-layers', dest='hidden_layers', default=ModelConfig.HIDDEN_LAYERS, type=int,
+                      help='the hidden layers of network')
+    parser.add_option('--case-name', dest='case_name', default=EvalConfig.CASE,
+                      help='the name of this setup')
     options, args = parser.parse_args()
-
+    if options.check_point:
+        EvalConfig.CKPT_PATH = options.check_point
+    ModelConfig.HIDDEN_UNITS = options.hidden_units
+    ModelConfig.HIDDEN_LAYERS = options.hidden_layers
+    EvalConfig.CASE = options.case_name
     for arg in args:
         extract(arg, options.channel)
