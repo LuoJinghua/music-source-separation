@@ -13,7 +13,8 @@ import tensorflow as tf
 
 from config import EvalConfig, ModelConfig
 from model import Model
-from preprocess import to_spectrogram, get_magnitude, get_phase, to_wav_mag_only, soft_time_freq_mask, to_wav, write_wav
+from preprocess import soft_time_freq_mask, to_wav, write_wav
+from preprocess import to_spectrogram, get_magnitude, get_phase, to_wav_mag_only
 
 
 def decode_input(filename):
@@ -28,7 +29,8 @@ def decode_input(filename):
         result.append(np.array([data[ch, :]]).flatten())
     return total_samples, data, np.array(result, dtype=np.float32)
 
-def extract(filename, channel):
+
+def separate(filename, channel):
     with tf.Graph().as_default():
         # Model
         model = Model(ModelConfig.HIDDEN_LAYERS, ModelConfig.HIDDEN_UNITS)
@@ -72,8 +74,6 @@ def extract(filename, channel):
                 pred_src1_wav = to_wav(pred_src1_mag, mixed_phase)
                 pred_src2_wav = to_wav(pred_src2_mag, mixed_phase)
 
-            base_file_name = os.path.splitext(filename)[0]
-
             def stack(data):
                 size = data.shape[0] // channels
                 elements = []
@@ -96,9 +96,16 @@ def extract(filename, channel):
 
             music_wav = np.dstack(music_data)[0]
             voice_wav = np.dstack(voice_data)[0]
+            return music_wav, voice_wav
+    return None
 
-            write_wav(music_wav, base_file_name + '-h%d-music' % model.hidden_size)
-            write_wav(voice_wav, base_file_name + '-h%d-voice' % model.hidden_size)
+
+def extract(filename, channel):
+    music_wav, voice_wav = separate(filename, channel)
+
+    base_file_name = os.path.splitext(filename)[0]
+    write_wav(music_wav, base_file_name + '-h%d-music' % ModelConfig.HIDDEN_UNITS)
+    write_wav(voice_wav, base_file_name + '-h%d-voice' % ModelConfig.HIDDEN_UNITS)
 
 
 if __name__ == '__main__':
