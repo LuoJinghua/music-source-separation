@@ -103,7 +103,7 @@ def train():
         loss = Diff()
         gnsdr, gsir, gsar = np.array([0, 0]), np.array([0, 0]), np.array([0, 0])
         intial_global_step = global_step.eval()
-        for step in xrange(intial_global_step, TrainConfig.FINAL_STEP):
+        for step in range(intial_global_step, TrainConfig.FINAL_STEP):
             start_time = time.time()
 
             bss_metric = step % 20 == 0 or step == intial_global_step

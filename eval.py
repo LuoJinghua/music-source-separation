@@ -85,9 +85,9 @@ def eval(n):
                     tf.summary.scalar('GNSDR_vocal', gnsdr[1])
                     tf.summary.scalar('GSIR_vocal', gsir[1])
                     tf.summary.scalar('GSAR_vocal', gsar[1])
-                    print 'GNSDR: ', gnsdr
-                    print 'GSIR: ', gsir
-                    print 'GSAR: ', gsar
+                    print ('GNSDR: ', gnsdr)
+                    print ('GSIR: ', gsir)
+                    print ('GSAR: ', gsar)
 
                 overall_gnsdr.append(gnsdr)
                 overall_gsir.append(gsir)
@@ -113,9 +113,9 @@ def eval(n):
         overall_gsir = np.mean(overall_gsir, axis=0)
         overall_gsar = np.mean(overall_gsar, axis=0)
 
-        print 'OVERALL GNSDR: ', overall_gnsdr
-        print 'OVERALL GSIR: ', overall_gsir
-        print 'OVERALL GSAR: ', overall_gsar
+        print ('OVERALL GNSDR: ', overall_gnsdr)
+        print ('OVERALL GSIR: ', overall_gsir)
+        print ('OVERALL GSAR: ', overall_gsar)
 
 
 def bss_eval_global(mixed_wav, src1_wav, src2_wav, pred_src1_wav, pred_src2_wav):
